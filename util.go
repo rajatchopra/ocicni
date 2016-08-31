@@ -5,9 +5,10 @@ import (
 	"os/exec"
 	"strings"
 	"net"
+	"fmt"
 )
 
-func getOnePodIP(nsenterPath, netnsPath, interfaceName, addrType string) (net.IP, error) {
+func getContainerIP(nsenterPath, netnsPath, interfaceName, addrType string) (net.IP, error) {
 	// Try to retrieve ip inside container network namespace
 	output, err := exec.Command(nsenterPath, fmt.Sprintf("--net=%s", netnsPath), "-F", "--",
 		"ip", "-o", addrType, "addr", "show", "dev", interfaceName, "scope", "global").CombinedOutput()

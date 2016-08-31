@@ -17,13 +17,13 @@ type CNIPlugin interface {
 	// SetUpPod is the method called after the infra container of
 	// the pod has been created but before the other containers of the
 	// pod are launched.
-	SetUpPod(namespace string, name string, containerID string) error
+	SetUpPod(netnsPath string, namespace string, name string, containerID string) error
 
 	// TearDownPod is the method called before a pod's infra container will be deleted
-	TearDownPod(namespace string, name string, containerID string) error
+	TearDownPod(netnsPath string, namespace string, name string, containerID string) error
 
 	// Status is the method called to obtain the ipv4 or ipv6 addresses of the container
-	GetPodNetworkStatus(namespace string, name string, containerID string) (*PodNetworkStatus, error)
+	GetContainerNetworkStatus(netnsPath string, namespace string, name string, containerID string) (string, error)
 
 	// NetworkStatus returns error if the network plugin is in error state
 	Status() error

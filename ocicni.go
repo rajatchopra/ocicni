@@ -4,6 +4,7 @@ package ocicni
 import (
 	"errors"
 	"fmt"
+	"os/exec"
 	"sort"
 	"sync"
 	"time"
@@ -30,12 +31,12 @@ type cniNetwork struct {
 	CNIConfig     libcni.CNI
 }
 
-func InitCNI() (CNIPlugin, error) {
+func InitCNI(pluginDir string) (CNIPlugin, error) {
 	plugin := probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir, "")
 	var err error
 	plugin.nsenterPath, err = exec.LookPath("nsenter")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// sync network config from pluginDir periodically to detect network config updates
@@ -47,11 +48,11 @@ func InitCNI() (CNIPlugin, error) {
 			case <- t.C:
 			}
 		}
-	}
-	return nil
+	}()
+	return plugin, nil
 }
 
-func probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir, vendorCNIDirPrefix string) CNIPlugin {
+func probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir, vendorCNIDirPrefix string) (*cniNetworkPlugin) {
 	plugin := &cniNetworkPlugin{
 		defaultNetwork:     nil,
 		loNetwork:          getLoNetwork(vendorCNIDirPrefix),
@@ -158,7 +159,7 @@ func (plugin *cniNetworkPlugin) SetUpPod(netnsPath string, namespace string, nam
 		return err
 	}
 
-	_, err = plugin.loNetwork.addToNetwork(name, namespace, id, netnsPath)
+	_, err := plugin.loNetwork.addToNetwork(name, namespace, id, netnsPath)
 	if err != nil {
 		glog.Errorf("Error while adding to cni lo network: %s", err)
 		return err
@@ -184,12 +185,12 @@ func (plugin *cniNetworkPlugin) TearDownPod(netnsPath string, namespace string, 
 // TODO: Use the addToNetwork function to obtain the IP of the Pod. That will assume idempotent ADD call to the plugin.
 // Also fix the runtime's call to Status function to be done only in the case that the IP is lost, no need to do periodic calls
 func (plugin *cniNetworkPlugin) GetContainerNetworkStatus(netnsPath string, namespace string, name string, id string) (string, error) {
-	ip, err := getPodIP(plugin.nsenterPath, netnsPath, network.DefaultInterfaceName)
+	ip, err := getContainerIP(plugin.nsenterPath, netnsPath, DefaultInterfaceName, "-4")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return ip
+	return ip.String(), nil
 }
 
 func (network *cniNetwork) addToNetwork(podName string, podNamespace string, podInfraContainerID string, podNetnsPath string) (*cnitypes.Result, error) {
@@ -232,16 +233,20 @@ func buildCNIRuntimeConf(podName string, podNs string, podInfraContainerID strin
 	glog.V(4).Infof("Using netns path %v", podNs)
 
 	rt := &libcni.RuntimeConf{
-		ContainerID: podInfraContainerID.ID,
+		ContainerID: podInfraContainerID,
 		NetNS:       podNetnsPath,
 		IfName:      DefaultInterfaceName,
 		Args: [][2]string{
 			{"IgnoreUnknown", "1"},
 			{"K8S_POD_NAMESPACE", podNs},
 			{"K8S_POD_NAME", podName},
-			{"K8S_POD_INFRA_CONTAINER_ID", podInfraContainerID.ID},
+			{"K8S_POD_INFRA_CONTAINER_ID", podInfraContainerID},
 		},
 	}
 
 	return rt, nil
+}
+
+func (plugin *cniNetworkPlugin) Status() error {
+	return plugin.checkInitialized()
 }
