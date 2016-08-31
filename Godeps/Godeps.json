@@ -1,0 +1,26 @@
+{
+	"ImportPath": "github.com/rajatchopra/ocicni",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v74",
+	"Deps": [
+		{
+			"ImportPath": "github.com/containernetworking/cni/libcni",
+			"Comment": "v0.3.0-61-g9d5e6e6",
+			"Rev": "9d5e6e60e79491207834ae8439e80c943db65a69"
+		},
+		{
+			"ImportPath": "github.com/containernetworking/cni/pkg/invoke",
+			"Comment": "v0.3.0-61-g9d5e6e6",
+			"Rev": "9d5e6e60e79491207834ae8439e80c943db65a69"
+		},
+		{
+			"ImportPath": "github.com/containernetworking/cni/pkg/types",
+			"Comment": "v0.3.0-61-g9d5e6e6",
+			"Rev": "9d5e6e60e79491207834ae8439e80c943db65a69"
+		},
+		{
+			"ImportPath": "github.com/golang/glog",
+			"Rev": "44145f04b68cf362d9c4df2182967c2275eaefed"
+		}
+	]
+}
