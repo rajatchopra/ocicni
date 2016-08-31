@@ -39,6 +39,14 @@ func InitCNI(pluginDir string) (CNIPlugin, error) {
 		return nil, err
 	}
 
+	// check if a default network exists, otherwise dump the CNI search and return a noop plugin
+	_, err = getDefaultCNINetwork(plugin.pluginDir, plugin.vendorCNIDirPrefix)
+	if err != nil {
+		glog.Warningf("Error in finding usable CNI plugin - %v", err)
+		// create a noop plugin instead
+		return &cniNoOp{}, nil
+	}
+
 	// sync network config from pluginDir periodically to detect network config updates
 	go func() {
 		t := time.NewTimer(10*time.Second)
